@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kubernetes K3S — La Plateforme</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #0a0a0f;
+    color: #fff;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  .deck { width: 100vw; height: 100vh; position: relative; }
+
+  .slide {
+    display: none;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0; left: 0;
+    padding: 60px 80px;
+    animation: fadeIn 0.4s ease;
+  }
+  .slide.active { display: flex; flex-direction: column; justify-content: center; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* SLIDE TITLE */
+  .slide-title {
+    background: linear-gradient(135deg, #0047FF 0%, #0a0a0f 60%);
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .slide-title .logo { font-size: 13px; letter-spacing: 3px; color: #6B9FFF; text-transform: uppercase; margin-bottom: 24px; }
+  .slide-title h1 { font-size: 72px; font-weight: 800; color: #fff; line-height: 1.1; margin-bottom: 16px; }
+  .slide-title h1 span { color: #0047FF; }
+  .slide-title .sub { font-size: 22px; color: #8899BB; }
+
+  /* SECTION SLIDE */
+  .slide-section {
+    background: #0047FF;
+    justify-content: center;
+  }
+  .slide-section .num { font-size: 120px; font-weight: 900; color: rgba(255,255,255,0.12); line-height: 1; margin-bottom: -20px; }
+  .slide-section h2 { font-size: 52px; font-weight: 800; color: #fff; }
+  .slide-section .desc { font-size: 18px; color: rgba(255,255,255,0.7); margin-top: 16px; max-width: 600px; }
+
+  /* CONTENT SLIDES */
+  .slide-content { background: #0d0d1a; }
+  .slide-content h2 { font-size: 36px; font-weight: 700; color: #fff; margin-bottom: 40px; }
+  .slide-content h2 span { color: #0047FF; }
+
+  /* CARDS GRID */
+  .cards { display: grid; gap: 20px; }
+  .cards-2 { grid-template-columns: 1fr 1fr; }
+  .cards-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .card {
+    background: #13132a;
+    border: 1px solid #1e1e40;
+    border-radius: 16px;
+    padding: 28px;
+  }
+  .card .icon { font-size: 28px; margin-bottom: 12px; }
+  .card h3 { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+  .card p { font-size: 13px; color: #8899BB; line-height: 1.6; }
+  .card.blue { border-color: #0047FF; background: #0a0a2e; }
+  .card.green { border-color: #00C48C; background: #0a1a14; }
+  .card.red { border-color: #FF4757; background: #1a0a0e; }
+
+  /* BADGE */
+  .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .badge-blue { background: #0047FF20; color: #6B9FFF; border: 1px solid #0047FF40; }
+  .badge-green { background: #00C48C20; color: #00C48C; border: 1px solid #00C48C40; }
+  .badge-orange { background: #FF890020; color: #FF8900; border: 1px solid #FF890040; }
+  .badge-red { background: #FF475720; color: #FF4757; border: 1px solid #FF475740; }
+
+  /* TWO COL */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
+  .two-col-3 { display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; align-items: start; }
+
+  /* LIST */
+  .list { list-style: none; }
+  .list li { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; font-size: 14px; color: #CDD6F4; line-height: 1.5; }
+  .list li::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #0047FF; flex-shrink: 0; margin-top: 6px; }
+  .list.green li::before { background: #00C48C; }
+  .list.red li::before { background: #FF4757; }
+
+  /* CODE BLOCK */
+  .code {
+    background: #070710;
+    border: 1px solid #1e1e40;
+    border-radius: 12px;
+    padding: 20px 24px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #CDD6F4;
+    line-height: 1.7;
+    overflow: hidden;
+  }
+  .code .kw { color: #89B4FA; }
+  .code .str { color: #A6E3A1; }
+  .code .cm { color: #585b70; }
+  .code .hl { color: #FAB387; }
+
+  /* TABLE */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tbl th { background: #0047FF; color: #fff; padding: 10px 16px; text-align: left; font-weight: 600; }
+  .tbl td { padding: 10px 16px; border-bottom: 1px solid #1e1e40; color: #CDD6F4; }
+  .tbl tr:nth-child(even) td { background: #13132a; }
+  .yes { color: #00C48C; font-weight: 700; }
+  .no { color: #FF4757; font-weight: 700; }
+  .mid { color: #FF8900; font-weight: 700; }
+
+  /* STAT */
+  .stats { display: flex; gap: 20px; }
+  .stat { flex: 1; background: #13132a; border: 1px solid #1e1e40; border-radius: 16px; padding: 24px; text-align: center; }
+  .stat .num { font-size: 48px; font-weight: 900; color: #0047FF; line-height: 1; }
+  .stat .lbl { font-size: 12px; color: #8899BB; margin-top: 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* TIMELINE */
+  .timeline { position: relative; padding-left: 30px; }
+  .timeline::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: #1e1e40; }
+  .tl-item { position: relative; margin-bottom: 20px; }
+  .tl-item::before { content: ''; position: absolute; left: -26px; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: #0047FF; border: 2px solid #0a0a2e; }
+  .tl-item .year { font-size: 11px; color: #0047FF; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .tl-item .event { font-size: 14px; color: #CDD6F4; margin-top: 2px; }
+
+  /* JOB CARDS */
+  .jobs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .job-card { background: #13132a; border: 1px solid #1e1e40; border-radius: 12px; padding: 20px; }
+  .job-card .jnum { font-size: 11px; color: #0047FF; font-weight: 700; letter-spacing: 1px; margin-bottom: 6px; }
+  .job-card h4 { font-size: 13px; color: #fff; font-weight: 600; }
+
+  /* FLOW */
+  .flow { display: flex; align-items: center; gap: 0; }
+  .flow-step { background: #13132a; border: 1px solid #1e1e40; border-radius: 12px; padding: 16px 20px; text-align: center; flex: 1; }
+  .flow-step .icon { font-size: 24px; margin-bottom: 8px; }
+  .flow-step h4 { font-size: 13px; color: #fff; font-weight: 600; }
+  .flow-step p { font-size: 11px; color: #8899BB; margin-top: 4px; }
+  .flow-arrow { font-size: 20px; color: #0047FF; padding: 0 8px; flex-shrink: 0; }
+
+  /* CONCLUSION */
+  .slide-conclusion { background: linear-gradient(135deg, #0a0a0f 0%, #0047FF 100%); justify-content: center; align-items: center; text-align: center; }
+  .slide-conclusion h2 { font-size: 52px; font-weight: 800; color: #fff; margin-bottom: 16px; }
+  .slide-conclusion p { font-size: 18px; color: rgba(255,255,255,0.7); max-width: 700px; line-height: 1.7; }
+  .checkmarks { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 32px; }
+  .checkmarks span { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 6px 16px; font-size: 13px; color: #fff; }
+  .checkmarks span::before { content: '✓ '; color: #00C48C; }
+
+  /* NAV */
+  .nav {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(13,13,26,0.95);
+    border: 1px solid #1e1e40;
+    border-radius: 50px;
+    padding: 10px 20px;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+  }
+  .nav button {
+    background: #0047FF;
+    border: none;
+    color: #fff;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .nav button:hover { background: #0035CC; }
+  .nav button:disabled { background: #1e1e40; cursor: default; }
+  .nav .counter { font-size: 13px; color: #8899BB; min-width: 60px; text-align: center; }
+  .nav .dots { display: flex; gap: 6px; }
+  .nav .dot { width: 6px; height: 6px; border-radius: 50%; background: #1e1e40; cursor: pointer; transition: background 0.2s; }
+  .nav .dot.active { background: #0047FF; }
+
+  /* PROGRESS */
+  .progress { position: fixed; top: 0; left: 0; height: 3px; background: #0047FF; transition: width 0.3s; z-index: 200; }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<div class="deck">
+
+  <!-- SLIDE 1 : TITRE -->
+  <div class="slide slide-title active">
+    <div class="logo">La Plateforme </div>
+    <h1>Kubernetes<br><span>K3S</span></h1>
+    <div class="sub">Déploiement d'un cluster haute disponibilité<br>sur 3 VMs Debian avec VMware</div>
+  </div>
+
+  <!-- SLIDE 2 : SOMMAIRE -->
+  <div class="slide slide-content">
+    <h2>Au programme</h2>
+    <div class="jobs">
+      <div class="job-card"><div class="jnum">JOB 01</div><h4>3 VMs Debian + Installation K3S</h4></div>
+      <div class="job-card"><div class="jnum">JOB 02</div><h4>Déploiement Nginx, Apache, MariaDB</h4></div>
+      <div class="job-card"><div class="jnum">JOB 03</div><h4>Cluster K3S master + workers</h4></div>
+      <div class="job-card"><div class="jnum">JOB 04</div><h4>Haute Disponibilité (HA)</h4></div>
+      <div class="job-card"><div class="jnum">JOB 05</div><h4>Volumes persistants PV/PVC</h4></div>
+      <div class="job-card"><div class="jnum">JOB 06</div><h4>ConfigMaps</h4></div>
+      <div class="job-card"><div class="jnum">JOB 07</div><h4>Secrets (MariaDB)</h4></div>
+      <div class="job-card"><div class="jnum">JOB 08</div><h4>Règles RBAC</h4></div>
+      <div class="job-card"><div class="jnum">JOB 09</div><h4>Helm — Package Manager</h4></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3 : SECTION INFRA -->
+  <div class="slide slide-section">
+    <div class="num">01</div>
+    <h2>Infrastructure</h2>
+    <div class="desc">3 VMs Debian, réseau host-only, installation K3S standalone</div>
+  </div>
+
+  <!-- SLIDE 4 : ARCHITECTURE RÉSEAU -->
+  <div class="slide slide-content">
+    <h2>Architecture <span>réseau</span></h2>
+    <div class="two-col">
+      <div>
+        <div class="cards">
+          <div class="card blue">
+            <div class="badge badge-blue">Master</div>
+            <h3>kubes-01.local</h3>
+            <p>🔵 ens34 → 172.16.227.10 (Host-Only K3S)<br>⚫ ens32 → 172.16.197.131 (NAT Internet)</p>
+          </div>
+          <div class="card">
+            <div class="badge badge-green">Worker</div>
+            <h3>kubes-02.local</h3>
+            <p>🔵 ens34 → 172.16.227.11 (Host-Only K3S)<br>⚫ ens32 → 172.16.197.132 (NAT Internet)</p>
+          </div>
+          <div class="card">
+            <div class="badge badge-green">Worker</div>
+            <h3>kubes-03.local</h3>
+            <p>🔵 ens34 → 172.16.227.12 (Host-Only K3S)<br>⚫ ens32 → 172.16.197.133 (NAT Internet)</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="code">
+<span class="cm"># Installation K3S — master</span>
+curl -sfL https://get.k3s.io | \
+  INSTALL_K3S_EXEC=<span class="str">"--node-ip=172.16.227.10 \
+  --advertise-address=172.16.227.10 \
+  --flannel-iface=ens34"</span> sh -
+
+<span class="cm"># Vérification</span>
+kubectl get nodes
+<span class="str">NAME             STATUS   ROLES
+kubes-01.local   Ready    control-plane</span>
+        </div>
+        <div style="margin-top:16px;" class="code">
+<span class="cm"># Réseau VMware utilisé</span>
+VMnet1 → Host-Only <span class="hl">172.16.227.0/24</span>
+VMnet8 → NAT       <span class="hl">172.16.197.0/24</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5 : SECTION CLUSTER -->
+  <div class="slide slide-section">
+    <div class="num">02</div>
+    <h2>Cluster & HA</h2>
+    <div class="desc">Déploiement des applications, clustering K3S et haute disponibilité</div>
+  </div>
+
+  <!-- SLIDE 6 : DÉPLOIEMENT APPS -->
+  <div class="slide slide-content">
+    <h2>Déploiement des <span>applications</span></h2>
+    <div class="cards cards-3">
+      <div class="card">
+        <div class="icon">🌐</div>
+        <div class="badge badge-blue">NodePort 30080</div>
+        <h3>Nginx</h3>
+        <p>Serveur web — image nginx:latest<br>3 replicas en HA</p>
+      </div>
+      <div class="card">
+        <div class="icon"></div>
+        <div class="badge badge-orange">NodePort 30081</div>
+        <h3>Apache (httpd)</h3>
+        <p>Serveur web — image httpd:latest<br>3 replicas en HA</p>
+      </div>
+      <div class="card">
+        <div class="icon"></div>
+        <div class="badge badge-green">NodePort 30306</div>
+        <h3>MariaDB</h3>
+        <p>Base de données — image mariadb:latest<br>3 replicas en HA</p>
+      </div>
+    </div>
+    <div style="margin-top: 24px;" class="code">
+<span class="cm"># Résultat kubectl get pods -o wide (9 pods sur 3 nodes)</span>
+nginx-xxx    <span class="str">Running</span>  kubes-01.local    nginx-yyy  <span class="str">Running</span>  kubes-02.local    nginx-zzz  <span class="str">Running</span>  kubes-03.local
+apache-xxx   <span class="str">Running</span>  kubes-01.local    apache-yyy <span class="str">Running</span>  kubes-02.local    apache-zzz <span class="str">Running</span>  kubes-03.local
+mariadb-xxx  <span class="str">Running</span>  kubes-01.local    mariadb-yyy <span class="str">Running</span> kubes-02.local    mariadb-zzz <span class="str">Running</span> kubes-03.local
+    </div>
+  </div>
+
+  <!-- SLIDE 7 : TEST HA -->
+  <div class="slide slide-content">
+    <h2>Test de <span>Haute Disponibilité</span></h2>
+    <div class="two-col">
+      <div>
+        <div class="flow" style="flex-direction: column; gap: 16px;">
+          <div class="flow-step" style="width:100%">
+            <div class="icon"></div>
+            <h4>Cluster opérationnel</h4>
+            <p>9 pods répartis sur 3 nodes</p>
+          </div>
+          <div class="flow-arrow" style="transform:rotate(90deg); align-self:center">▶</div>
+          <div class="flow-step" style="width:100%; border-color:#FF4757; background:#1a0a0e;">
+            <div class="icon"></div>
+            <h4>kubes-02 arrêté</h4>
+            <p>systemctl stop k3s-agent</p>
+          </div>
+          <div class="flow-arrow" style="transform:rotate(90deg); align-self:center">▶</div>
+          <div class="flow-step" style="width:100%; border-color:#00C48C; background:#0a1a14;">
+            <div class="icon"></div>
+            <h4>Rescheduling automatique</h4>
+            <p>Pods redistribués sur kubes-01 et kubes-03</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="code">
+<span class="cm"># État des nodes après arrêt kubes-02</span>
+kubectl get nodes
+
+NAME             STATUS
+kubes-01.local   <span class="str">Ready</span>    control-plane
+kubes-02.local   <span class="hl">NotReady</span> worker
+kubes-03.local   <span class="str">Ready</span>    worker
+
+<span class="cm"># K8s redistribue automatiquement
+# les pods après ~2-5 minutes
+# sans intervention manuelle</span>
+        </div>
+        <div style="margin-top:16px;" class="card green">
+          <h3>HA validée</h3>
+          <p>Les applications restent disponibles même quand un worker tombe. Kubernetes détecte la panne et reschedule automatiquement.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8 : SECTION AVANCÉ -->
+  <div class="slide slide-section">
+    <div class="num">03</div>
+    <h2>Fonctionnalités avancées</h2>
+    <div class="desc">Volumes, ConfigMaps, Secrets, RBAC, Helm</div>
+  </div>
+
+  <!-- SLIDE 9 : VOLUMES -->
+  <div class="slide slide-content">
+    <h2>Volumes <span>persistants</span></h2>
+    <div class="two-col">
+      <div>
+        <div class="cards">
+          <div class="card blue">
+            <div class="badge badge-blue">PV nginx-pv — 1Gi</div>
+            <h3>Nginx</h3>
+            <p>Monté sur <code style="color:#A6E3A1">/usr/share/nginx/html</code><br>storageClassName: manual</p>
+          </div>
+          <div class="card green">
+            <div class="badge badge-green">PV mariadb-pv — 5Gi</div>
+            <h3>MariaDB</h3>
+            <p>Monté sur <code style="color:#A6E3A1">/var/lib/mysql</code><br>storageClassName: manual</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="code">
+<span class="cm"># Résultat kubectl get pv / pvc</span>
+NAME         STATUS  STORAGECLASS
+mariadb-pv   <span class="str">Bound</span>   <span class="hl">manual</span>
+nginx-pv     <span class="str">Bound</span>   <span class="hl">manual</span>
+
+NAME          VOLUME      CAPACITY
+mariadb-pvc   mariadb-pv  <span class="hl">5Gi</span>
+nginx-pvc     nginx-pv    <span class="hl">1Gi</span>
+        </div>
+        <div style="margin-top: 16px;" class="card">
+          <h3>Problème rencontré</h3>
+          <p>K3S inclut un provisionneur <code>local-path</code> qui intercepte les PVC sans storageClassName. Solution : ajouter <code style="color:#A6E3A1">storageClassName: manual</code> dans PV et PVC.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10 : CONFIGMAPS & SECRETS -->
+  <div class="slide slide-content">
+    <h2>ConfigMaps <span>&</span> Secrets</h2>
+    <div class="cards cards-2">
+      <div class="card">
+        <div class="badge badge-blue">Job 06 — ConfigMaps</div>
+        <h3>Configuration externalisée</h3>
+        <p style="margin-bottom:12px">Pages d'accueil personnalisées pour Nginx et Apache, montées comme fichiers via <code style="color:#A6E3A1">subPath</code>.</p>
+        <div class="code" style="font-size:12px">
+<span class="kw">kind:</span> ConfigMap
+<span class="kw">data:</span>
+  index.html: |
+    <span class="str">&lt;h1&gt;Bienvenue sur Nginx&lt;/h1&gt;</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="badge badge-orange">Job 07 — Secrets</div>
+        <h3>Données sensibles chiffrées</h3>
+        <p style="margin-bottom:12px">Mot de passe MariaDB stocké en base64, jamais en clair dans le YAML.</p>
+        <div class="code" style="font-size:12px">
+<span class="kw">kind:</span> Secret
+<span class="kw">type:</span> Opaque
+<span class="kw">data:</span>
+  MYSQL_ROOT_PASSWORD: <span class="hl">cm9vdHBhc3N3b3Jk</span>
+
+<span class="cm"># kubectl describe secret
+# MYSQL_ROOT_PASSWORD: 12 bytes </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 11 : RBAC -->
+  <div class="slide slide-content">
+    <h2>Sécurité <span>RBAC</span></h2>
+    <div class="two-col">
+      <div>
+        <div class="flow" style="flex-direction:column; gap:12px;">
+          <div class="flow-step" style="width:100%; border-color:#0047FF;">
+            <div class="icon"></div>
+            <h4>ServiceAccount</h4>
+            <p>app-sa</p>
+          </div>
+          <div class="flow-arrow" style="transform:rotate(90deg); align-self:center;">▶</div>
+          <div class="flow-step" style="width:100%;">
+            <div class="icon"></div>
+            <h4>RoleBinding</h4>
+            <p>read-pods</p>
+          </div>
+          <div class="flow-arrow" style="transform:rotate(90deg); align-self:center;">▶</div>
+          <div class="flow-step" style="width:100%; border-color:#00C48C; background:#0a1a14;">
+            <div class="icon"></div>
+            <h4>Role — pod-reader</h4>
+            <p>get, list, watch → pods</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3 style="font-size:15px; color:#8899BB; margin-bottom:16px;">Tests de permissions</h3>
+        <div class="code">
+kubectl auth can-i <span class="str">list pods</span> \
+  --as=system:serviceaccount:default:app-sa
+<span class="str">yes </span>
+
+kubectl auth can-i <span class="hl">delete pods</span> \
+  --as=system:serviceaccount:default:app-sa
+<span class="hl">no </span>
+
+kubectl auth can-i <span class="hl">list services</span> \
+  --as=system:serviceaccount:default:app-sa
+<span class="hl">no </span>
+        </div>
+        <div style="margin-top:16px;" class="card green">
+          <h3>Principe du moindre privilège</h3>
+          <p>app-sa ne peut faire que ce qu'on lui a explicitement autorisé.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 12 : HELM -->
+  <div class="slide slide-content">
+    <h2>Helm — <span>Package Manager</span></h2>
+    <div class="two-col">
+      <div>
+        <div class="cards">
+          <div class="card blue">
+            <div class="badge badge-blue">Sans Helm</div>
+            <ul class="list red" style="margin-top:8px">
+              <li>3-5 fichiers YAML par application</li>
+              <li>Mise à jour manuelle de chaque fichier</li>
+              <li>Rollback complexe et risqué</li>
+              <li>Pas d'historique des versions</li>
+            </ul>
+          </div>
+          <div class="card green">
+            <div class="badge badge-green">Avec Helm</div>
+            <ul class="list green" style="margin-top:8px">
+              <li>1 commande pour tout déployer</li>
+              <li>Historique automatique (REVISION)</li>
+              <li>Rollback en 1 commande</li>
+              <li>Charts réutilisables et partageables</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="code">
+<span class="cm"># Installer nginx en 1 commande</span>
+helm install mon-nginx bitnami/nginx
+
+<span class="cm"># Personnaliser</span>
+helm install nginx-custom bitnami/nginx \
+  -f values-nginx.yaml
+
+<span class="cm"># Historique</span>
+helm history nginx-custom
+<span class="str">REVISION  STATUS
+1         superseded  ← install
+2         superseded  ← upgrade
+3         deployed    ← actuel</span>
+
+<span class="cm"># Rollback</span>
+helm rollback nginx-custom 1
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 13 : SECTION COMPARAISON -->
+  <div class="slide slide-section">
+    <div class="num">04</div>
+    <h2>Pour aller plus loin</h2>
+    <div class="desc">Comparaison K3S, Docker et Docker Swarm</div>
+  </div>
+
+  <!-- SLIDE 14 : COMPARAISON TABLE -->
+  <div class="slide slide-content">
+    <h2>Docker vs Swarm vs <span>K3S</span></h2>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Critère</th>
+          <th>Docker seul</th>
+          <th>Docker Swarm</th>
+          <th>K3S (Kubernetes)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Haute disponibilité</td><td class="no"></td><td class="yes"></td><td class="yes"></td></tr>
+        <tr><td>Rescheduling automatique</td><td class="no"></td><td class="yes"></td><td class="yes"></td></tr>
+        <tr><td>RBAC natif</td><td class="no"></td><td class="no"></td><td class="yes"></td></tr>
+        <tr><td>Volumes persistants avancés</td><td class="mid">Basique</td><td class="mid">Basique</td><td class="yes">Avancé</td></tr>
+        <tr><td>Support Helm</td><td class="no"></td><td class="no"></td><td class="yes"></td></tr>
+        <tr><td>Complexité</td><td class="yes">Faible</td><td class="mid">Moyenne</td><td class="no">Élevée</td></tr>
+        <tr><td>Demande en entreprise</td><td class="mid"></td><td class="no">En déclin</td><td class="yes">Standard</td></tr>
+        <tr><td>RAM minimum</td><td>256 MB</td><td>512 MB</td><td>512 MB</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- SLIDE 15 : QUAND UTILISER -->
+  <div class="slide slide-content">
+    <h2>Quand <span>utiliser</span> quoi ?</h2>
+    <div class="cards cards-3">
+      <div class="card">
+        <div class="icon">🐳</div>
+        <div class="badge badge-blue">Docker</div>
+        <h3>Dev local / serveur unique</h3>
+        <ul class="list" style="margin-top:12px">
+          <li>Développement sur sa machine</li>
+          <li>Petite app sur 1 VPS</li>
+          <li>Débutant en conteneurs</li>
+          <li>Pas besoin de HA</li>
+        </ul>
+        <p style="margin-top:12px; font-style:italic; color:#585b70; font-size:12px">Ex: Blog perso, app de test</p>
+      </div>
+      <div class="card">
+        <div class="icon"></div>
+        <div class="badge badge-orange">Docker Swarm</div>
+        <h3>Cluster simple / petite équipe</h3>
+        <ul class="list" style="margin-top:12px">
+          <li>Déjà sur Docker Compose</li>
+          <li>2-3 serveurs max</li>
+          <li>App simple sans microservices</li>
+          <li>Ressources formation limitées</li>
+        </ul>
+        <p style="margin-top:12px; font-style:italic; color:#585b70; font-size:12px">Ex: PME 2-3 serveurs</p>
+      </div>
+      <div class="card blue">
+        <div class="icon"></div>
+        <div class="badge badge-green">K3S / Kubernetes</div>
+        <h3>Production / microservices</h3>
+        <ul class="list green" style="margin-top:12px">
+          <li>Besoin RBAC, Helm, PV/PVC</li>
+          <li>IoT / Edge computing</li>
+          <li>Lab de formation (ce projet !)</li>
+          <li>Montée en charge prévue</li>
+        </ul>
+        <p style="margin-top:12px; font-style:italic; color:#585b70; font-size:12px">Standard industrie 2024</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 16 : BILAN -->
+  <div class="slide slide-content">
+    <h2>Bilan du <span>projet</span></h2>
+    <div class="stats" style="margin-bottom:28px">
+      <div class="stat"><div class="num">3</div><div class="lbl">VMs Debian</div></div>
+      <div class="stat"><div class="num">9</div><div class="lbl">Jobs réalisés</div></div>
+      <div class="stat"><div class="num">9</div><div class="lbl">Pods en HA</div></div>
+      <div class="stat"><div class="num">3</div><div class="lbl">Apps déployées</div></div>
+    </div>
+    <div class="cards cards-2">
+      <div>
+        <h3 style="font-size:14px; color:#8899BB; margin-bottom:12px;">Compétences acquises</h3>
+        <ul class="list green">
+          <li>Installer et configurer un cluster K3S</li>
+          <li>Déployer des applications conteneurisées</li>
+          <li>Mettre en place la haute disponibilité</li>
+          <li>Gérer le stockage persistant (PV/PVC)</li>
+          <li>Externaliser la configuration (ConfigMaps)</li>
+          <li>Sécuriser les données sensibles (Secrets)</li>
+          <li>Contrôler les accès (RBAC)</li>
+          <li>Gérer les applications avec Helm</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="font-size:14px; color:#8899BB; margin-bottom:12px;">Compétences visées</h3>
+        <ul class="list">
+          <li>Administrer et sécuriser les infrastructures systèmes</li>
+          <li>Administrer et sécuriser les infrastructures virtualisées</li>
+          <li>Mettre en œuvre et optimiser la supervision des infrastructures</li>
+        </ul>
+        <div style="margin-top:20px;" class="card green">
+          <h3>K3S → Kubernetes standard</h3>
+          <p>Les compétences acquises sont directement transférables vers EKS (AWS), GKE (Google) et AKS (Azure).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 17 : CONCLUSION -->
+  <div class="slide slide-conclusion">
+    <h2>Merci !</h2>
+    <p>Cluster K3S haute disponibilité déployé sur 3 VMs Debian<br>avec VMware — 9 jobs complétés</p>
+    <div class="checkmarks">
+      <span>K3S Cluster</span>
+      <span>Haute Disponibilité</span>
+      <span>PV/PVC</span>
+      <span>ConfigMaps</span>
+      <span>Secrets</span>
+      <span>RBAC</span>
+      <span>Helm</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- NAVIGATION -->
+<nav class="nav">
+  <button id="prev" onclick="changeSlide(-1)">◀</button>
+  <div class="dots" id="dots"></div>
+  <div class="counter" id="counter">1 / 17</div>
+  <button id="next" onclick="changeSlide(1)">▶</button>
+</nav>
+
+<script>
+  let current = 0;
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  const dotsEl = document.getElementById('dots');
+  const progress = document.getElementById('progress');
+
+  // Build dots
+  for (let i = 0; i < total; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => goTo(i);
+    dotsEl.appendChild(d);
+  }
+
+  function goTo(n) {
+    slides[current].classList.remove('active');
+    dotsEl.children[current].classList.remove('active');
+    current = Math.max(0, Math.min(n, total - 1));
+    slides[current].classList.add('active');
+    dotsEl.children[current].classList.add('active');
+    document.getElementById('counter').textContent = (current + 1) + ' / ' + total;
+    document.getElementById('prev').disabled = current === 0;
+    document.getElementById('next').disabled = current === total - 1;
+    progress.style.width = ((current + 1) / total * 100) + '%';
+  }
+
+  function changeSlide(dir) { goTo(current + dir); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') changeSlide(1);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') changeSlide(-1);
+  });
+
+  goTo(0);
+</script>
+</body>
+</html>
