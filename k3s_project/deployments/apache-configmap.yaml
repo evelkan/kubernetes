@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apache-config
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head><title>Apache K3S</title></head>
+    <body>
+      <h1>Bienvenue sur Apache</h1>
+      <p>Deploye sur le cluster K3S - La Plateforme</p>
+    </body>
+    </html>

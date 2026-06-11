@@ -1,0 +1,5 @@
+replicaCount: 3
+service:
+  type: NodePort
+  nodePorts:
+    http: 30090
